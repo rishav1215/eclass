@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +11,8 @@ class PublicController extends Controller
 {
     public function home()
     {
-        return view("landing.homepage");
+        $courses = Course::where('status', true)->get();
+        return view("landing.homepage", compact("courses"));
     }
 
     public function apply(Request $req)
@@ -26,7 +28,7 @@ class PublicController extends Controller
 
             User::create($data);
 
-             return redirect()->route('public.login')->with('msg', 'Applied successfully. We will review your application ASAP.');
+            return redirect()->route('public.login')->with('msg', 'Applied successfully. We will review your application ASAP.');
         }
         return view("landing.apply");
     }
@@ -57,5 +59,18 @@ class PublicController extends Controller
     {
         Auth::logout();
         return redirect()->route("public.home");
+    }
+    public function courseDetail($id)
+    {
+        $course = Course::findOrFail($id);
+
+        // Fetch related courses (same category, excluding current)
+        $relatedCourses = Course::where('category_id', $course->category_id)
+            ->where('id', '!=', $course->id)
+            ->latest()
+            ->take(3)
+            ->get();
+
+        return view('landing.courseDetail', compact('course', 'relatedCourses'));
     }
 }
