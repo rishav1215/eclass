@@ -19,7 +19,7 @@ class PaymentController extends Controller
 
     $orderData = [
         'receipt'         => 'rcptid_' . $id,
-        'amount'          => $course->fees * 100, // ₹ to paise
+        'amount'          => $course->descount_price * 100, // ₹ to paise
         'currency'        => 'INR',
     ];
 

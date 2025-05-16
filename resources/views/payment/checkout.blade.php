@@ -120,8 +120,8 @@
             <h2>{{ $course->title }}</h2>
         </div>
 
-        <div class="amount">
-            Amount: ₹{{ number_format($course->fees) }}
+        <div class="amount">    
+            Amount: ₹{{ number_format($course->descount_price) }}
         </div>
 
         <button id="payButton" class="payButton">Pay Now</button>
@@ -134,32 +134,86 @@
         </div>
     </div>
 
-    <script type="text/javascript">
-        document.getElementById('payButton').onclick = function (e) {
-            var options = {
-                "key": "{{ env('RAZORPAY_KEY') }}", // Razorpay Key
-                "amount": "{{ $order->amount }}", // Amount in paise
-                "currency": "INR",
-                "order_id": "{{ $order->id }}",
-                "name": "{{ $course->title }}",
-                "description": "{{ $course->description }}",
-                "image": "https://your-site.com/logo.png", // Add your logo URL
-                "handler": function (response) {
-                    alert("Payment Successful. Payment ID: " + response.razorpay_payment_id);
-                    // Optionally, send the payment ID to your backend for verification
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    document.getElementById('razorpay-button').onclick = function (e) {
+        e.preventDefault();
+
+        let amount = "{{ $course->descount_price }}"; // ₹ se paisa
+        let courseId = "{{ $course->id }}";
+
+        // STEP 1: Razorpay Order Create Karna
+        fetch("{{ route('razorpay.createOrder') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                amount: amount,
+                course_id: courseId
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert("Order creation failed: " + data.error);
+                return;
+            }
+
+            const options = {
+                key: data.razorpay_key,
+                amount: amount * 100, // ₹ to paisa
+                currency: "INR",
+                name: "{{ $course->title }}",
+                description: "Course Enrollment",
+                order_id: data.order_id,
+                handler: function (response) {
+                    // STEP 2: Payment success hone par verify karna
+                    fetch("{{ route('razorpay.verify') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            amount: amount,
+                            course_id: courseId
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Payment successful!");
+                            window.location.href = "{{ route('payment.success') }}"; // Redirect to success page
+                        } else {
+                            alert("Payment verification failed!");
+                        }
+                    });
                 },
-                "prefill": {
-                    "name": "Student Name",
-                    "email": "student@example.com",
-                    "contact": "9876543210"
+                prefill: {
+                    name: 'Student Name',
+                    email: 'student@example.com',
+                    contact: '9999999999'
+                },
+                theme: {
+                    color: "#3399cc"
                 }
             };
 
-            var rzp1 = new Razorpay(options);
-            rzp1.open();
-            e.preventDefault();
-        };
-    </script>
+            const rzp = new Razorpay(options);
+            rzp.open();
+        })
+        .catch(error => {
+            alert("Something went wrong: " + error);
+        });
+    }
+</script>
+
+
 </body>
 
 </html>

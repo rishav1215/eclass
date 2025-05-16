@@ -65,10 +65,10 @@
                             <h3 class="text-xl font-bold text-gray-800">{{ $course->title }}</h3>
                             <p class="mt-2 text-gray-600">{{ Str::limit($course->author, 50) }}</p>
                             <p class="mt-1 text-blue-600 font-semibold">
-                                ₹{{ number_format($course->fees) }}
-                                @if($course->descount_price)
+                                ₹{{ number_format($course->descount_price) }}
+                                @if($course->fees)
                                     <span
-                                        class="line-through text-gray-500 ml-2">₹{{ number_format($course->descount_price) }}</span>
+                                        class="line-through text-gray-500 ml-2"><del>₹{{ number_format($course->fees) }}</del></span>
                                 @endif
                             </p>
                             <a href="{{ route('course.detail', $course->id) }}"
